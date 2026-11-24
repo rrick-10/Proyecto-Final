@@ -6,10 +6,18 @@ celdas. Usa la geometría de geometry.py (BoundingSquare.circle_relation) y se
 valida contra la fuerza bruta BruteForceTerrain de brute_force.py.
 
 Convención de ejes: Y crece hacia arriba (igual que geometry.py y brute_force.py).
+
+Demo (desde la carpeta raíz):
+    python wormquadtree.py [semilla] [ancho] [alto] [n_bombas]
+    python wormquadtree.py 42 64 64 4
+    Usa los mismos argumentos en Worms_brute_visual.py para comparar.
 """
 from __future__ import annotations
 
 from enum import Enum
+import sys
+import time
+import tracemalloc
 from typing import Dict, Iterator, Optional
 
 from geometry import BoundingSquare
@@ -277,3 +285,63 @@ class RegionQuadTree:
                 solid_char if self.is_solid(c * step_x + step_x / 2, py) else air_char
                 for c in range(cols)))
         return "\n".join(lines)
+
+
+def main() -> None:
+    seed = int(sys.argv[1]) if len(sys.argv) > 1 else 42
+    width = int(sys.argv[2]) if len(sys.argv) > 2 else 64
+    height = int(sys.argv[3]) if len(sys.argv) > 3 else 64
+    n_bombs = int(sys.argv[4]) if len(sys.argv) > 4 else 4
+    if width != height:
+        raise ValueError("El quadtree requiere un mapa cuadrado; ancho y alto deben coincidir.")
+
+    from brute_force import random_bombs
+
+    bombs = random_bombs(width, height, n_bombs,
+                         max(1, width // 24), max(2, width // 9), seed)
+
+    tracemalloc.start()
+    terrain = RegionQuadTree(U=width, max_depth=6)
+    terrain.generate_terrain(surface_y=height / 2)
+    memory_bytes = tracemalloc.get_traced_memory()[1]
+    tracemalloc.stop()
+    initial_solid_area = terrain.solid_area()
+    show_map = width <= 100 and height <= 64
+
+    print(f"Semilla: {seed}")
+    print(f"Mapa: {width}x{height} (Y hacia arriba)")
+    print(f"Tierra inicial: {initial_solid_area:.2f} unidades²")
+    if show_map:
+        print("\nMapa inicial:")
+        print(terrain.to_ascii(cols=width, rows=height))
+    print("\nBombas (x, y, radio):")
+    for i, (cx, cy, radius) in enumerate(bombs[:10], 1):
+        print(f"  {i}. ({cx}, {cy}) radio {radius}")
+    if len(bombs) > 10:
+        print(f"  ... y {len(bombs) - 10} más")
+
+    start = time.perf_counter()
+    for cx, cy, radius in bombs:
+        terrain.explosion(cx, cy, radius)
+    elapsed = time.perf_counter() - start
+
+    if show_map:
+        print("\nMapa después de las bombas:")
+        print(terrain.to_ascii(cols=width, rows=height))
+    else:
+        print("\n(El mapa es muy grande para dibujarlo en consola.)")
+
+    area_start = time.perf_counter()
+    destroyed_percentage = terrain.destroyed_percentage()
+    area_elapsed = time.perf_counter() - area_start
+    destroyed_area = initial_solid_area * destroyed_percentage / 100
+
+    print(f"\nTiempo para aplicar las bombas: {elapsed * 1000:.3f} ms")
+    print(f"Tiempo para calcular el área destruida: {area_elapsed * 1000:.3f} ms")
+    print(f"Memoria máxima al generar el mapa: {memory_bytes / 1024:.1f} KB")
+    print(f"Área destruida: {destroyed_area:.2f} de {initial_solid_area:.2f} "
+          f"unidades² ({destroyed_percentage:.2f}% del terreno inicial)")
+
+
+if __name__ == "__main__":
+    main()
