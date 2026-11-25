@@ -7,6 +7,7 @@ No requiere librerías externas.
 """
 from __future__ import annotations
 
+import argparse
 import random
 import time
 import tracemalloc
@@ -43,17 +44,22 @@ def run_brute_force(U, surface_y, bombs):
     return bf, elapsed, peak / 1024
 
 
-def run_benchmark():
+def run_benchmark(include_large=False):
     # (tamaño U del mapa, profundidad del quadtree, nº de bombas, rango de radios)
     configuraciones = [
         (200, 6, [10, 100, 500, 1000], (5, 15)),
         (1024, 8, [100, 1000], (20, 60)),
     ]
+    if include_large:
+        configuraciones.append((4096, 10, [100], (80, 240)))
 
     ancho = 96
     print("=" * ancho)
     print("   BENCHMARK & DEMO: REGION QUADTREE VS BITMAP DE FUERZA BRUTA".center(ancho))
     print("=" * ancho)
+    if include_large:
+        print("Modo grande: incluye un mapa de 4096 x 4096; "
+              "la fuerza bruta puede requerir más de 128 MiB.")
     print(f"{'Método':<24} | {'Bombas':<6} | {'Tiempo (s)':<10} | "
           f"{'Memoria (KiB)':<13} | {'% destruido':<11} | {'Nodos':<6}")
 
@@ -61,8 +67,8 @@ def run_benchmark():
         print("=" * ancho)
         print(f"Mapa {U} x {U}, terreno hasta y = {U / 2:g}, radios {r_min}-{r_max}")
         print("-" * ancho)
-        rng = random.Random(42)
         for n in bomb_counts:
+            rng = random.Random(42)
             bombs = [(rng.uniform(0.1 * U, 0.9 * U), rng.uniform(0.1 * U, 0.9 * U),
                       rng.uniform(r_min, r_max)) for _ in range(n)]
             qt, qt_time, qt_mem = run_quadtree(U, U / 2, bombs, depth)
@@ -98,4 +104,11 @@ def run_benchmark():
 
 
 if __name__ == "__main__":
-    run_benchmark()
+    parser = argparse.ArgumentParser(description="Compara quadtree y fuerza bruta en terreno destructible.")
+    parser.add_argument(
+        "--large",
+        action="store_true",
+        help="incluye una prueba de estrés con un mapa de 4096 x 4096",
+    )
+    run_benchmark(include_large=parser.parse_args().large)
+
