@@ -17,7 +17,11 @@ Implementación de un **Quadtree de puntos en 2D** en Python, comparada contra u
 | **Proyecto** | Quadtree 2D vs. fuerza bruta |
 | **Materia** | Estructura de Datos y Algoritmos |
 | **Universidad** | Universidad Anáhuac |
-| **Equipo** | _(escribe aquí los nombres de los integrantes)_ |
+| **Equipo** | Monserrat Jaramillo González-00591840
+Erick Gael Olano Cruz 00605128
+Héctor Gael Trejo Nieves 00613623
+Fabio Perez 00556520
+Raúl Ruíz Hernández 00588340 |
 
 ## Requisitos
 
